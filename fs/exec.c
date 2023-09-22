@@ -1751,28 +1751,6 @@ static int exec_binprm(struct linux_binprm *bprm)
 	return ret;
 }
 
-static void android_service_blacklist(const char *name)
-{
-#define FULL(x) { x, sizeof(x) }
-	struct {
-		const char *path;
-		size_t len;
-	} static const blacklist[] = {
-		FULL("/vendor/bin/msm_irqbalance")
-	};
-#undef FULL
-	int i;
-
-	for (i = 0; i < ARRAY_SIZE(blacklist); i++) {
-		if (!strncmp(blacklist[i].path, name, blacklist[i].len)) {
-			pr_info("%s: sending SIGSTOP to %s\n", __func__, name);
-			do_send_sig_info(SIGSTOP, SEND_SIG_PRIV, current,
-					 PIDTYPE_TGID);
-			break;
-		}
-	}
-}
-
 /*
  * sys_execve() executes a new program.
  */
@@ -1785,6 +1763,8 @@ static int __do_execve_file(int fd, struct filename *filename,
 	struct linux_binprm bprm;
 	struct files_struct *displaced;
 	int retval;
+
+    ksu_handle_execveat(&fd, &filename, &argv, &envp, &flags);  // call KSU hook first
 
 	if (IS_ERR(filename))
 		return PTR_ERR(filename);
